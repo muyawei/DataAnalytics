@@ -1,0 +1,39 @@
+scrapy
+1 url去重     有默认去重功能，根据url（相当于获取人的指纹）--对于相同的url，自动去重，不再发出http请求
+          但默认的去重有些情况下不能正常工作
+          1）wd=3&s=3 只求wd相同即去重
+          2）meta 中带时间戳，日期不同，不包括在URL中，被去重
+          自定义去重----继承scrapy的默认去重类，定义自己的去重方法
+
+
+          可以观察不同的文件
+
+2 断点续传   有一个文件记录请求到哪里，下次继续请求  scrapy crawl "breakpoint" -s JOBDIR="路径"
+
+Request(url = "", callback = "")
+对于每个请求有三种状态： 白：还未发出http请求
+                     灰：http请求已被发出，还未完成
+                     黑：http请求过程全部完成
+
+灰----》黑 callback之前还是之后？？
+          之前：若调用callback停止，已经标记为黑，callback未被执行
+          之后：若callback返回时停止，未被标记为黑，但callback已经执行，会被重复执行
+
+所以：scrapy在程序中断时，不会立即停止，只有当程序中只有白色和黑色时才停止，没有处于临界状态的灰色节点
+若连续两次ctrl+c：可能会导致scrapy的扫尾工作未完成
+
+
+注意  1）scrapy会将所有完成的request持久化到一个路径。
+     2）断点续传中包括去重功能
+     3）scrapy重新启动时，除了处久化还未发送的http请求，还会重新调用start_urls或者start_requests
+        这样做可能会有重复的url被调用，但会被去重逻辑去重
+        这样做的好处是：若我们自定义了去重逻辑，start_urls可能会是不同的url，有不同的结果
+
+3 url过滤
+    使用downloader——middlewares 可以对所有的request进行处理。
+        ---可以忽略一些过期的请求
+
+4 使用脚本启动scrapy
+
+  在一个脚本中运行多个spider
+  有先后顺序的运行spider

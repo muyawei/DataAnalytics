@@ -1,0 +1,88 @@
+我们所有能看到的信息都是浏览器从服务器获取的信息
+
+发起http请求的url用到的站点代码一定是某个时候从服务器获取的---》找不到时用开发者工具进行监控 --》车次查询时的名字
+
+晚点查询--需要加user-agent，反爬虫
+晚点查询---需要所有车次，而且是动态的
+
+屏蔽爬虫的几种方法
+1 User-agent :识别User-agent查看是浏览器还是爬虫
+  robots.txt :标识不欢迎的协议
+   ==========防君子不妨小人，发起request请求时，可以更改请求头信息
+
+2 ip频率--站点服务器统计ip的访问请求，对于过高，过快的，进行屏蔽
+   ===========控制爬取频率／使用代理／使用多台云主机
+
+3 js动态加载／解析
+   ======模拟执行js／分析js
+
+4 cookie限制／自动转调（服务器发给浏览器cookie，访问时需携带cookie）
+   =======伪造cookie（模拟请求，获取cookie，以后每次携带cookie）
+
+5 诱捕（没有目的性的爬虫）-----对于正常用户看不到的页面，被访问，一定是爬虫，将其ip屏蔽
+  =========百度这类爬虫
+
+6 验证码（文字斜一点，噪音多一点）
+  避开验证码，图像识别验证码，人工在线识别
+  看验证码验证是放在前端还是服务器上验证的，若放在前端进行，有机会绕过验证。。。
+  遇到验证码，就提取出来，分发给客户端，人工识别，识别出来给点钱
+
+
+https://www.taobao.com/robots.txt
+
+User-agent:  Baiduspider
+Allow:  /article
+Allow:  /oshtml
+Allow:  /wenzhang
+Disallow:  /product/
+Disallow:  /
+
+User-Agent:  Googlebot
+Allow:  /article
+Allow:  /oshtml
+Allow:  /product
+Allow:  /spu
+Allow:  /dianpu
+Allow:  /wenzhang
+Allow:  /oversea
+Disallow:  /
+
+User-agent:  Bingbot
+Allow:  /article
+Allow:  /oshtml
+Allow:  /product
+Allow:  /spu
+Allow:  /dianpu
+Allow:  /wenzhang
+Allow:  /oversea
+Disallow:  /
+
+User-Agent:  360Spider
+Allow:  /article
+Allow:  /oshtml
+Allow:  /wenzhang
+Disallow:  /
+
+User-Agent:  Yisouspider
+Allow:  /article
+Allow:  /oshtml
+Allow:  /wenzhang
+Disallow:  /
+
+User-Agent:  Sogouspider
+Allow:  /article
+Allow:  /oshtml
+Allow:  /product
+Allow:  /wenzhang
+Disallow:  /
+
+User-Agent:  Yahoo!  Slurp
+Allow:  /product
+Allow:  /spu
+Allow:  /dianpu
+Allow:  /wenzhang
+Allow:  /oversea
+Disallow:  /
+
+User-Agent:  *
+Disallow:  /

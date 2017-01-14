@@ -1,0 +1,1 @@
+SubjectAltNameWarning: Certificate has no `subjectAltName`, falling back to check for a `commonName` for now.  This feature is being removed by major browsers and deprecated by RFC 2818.

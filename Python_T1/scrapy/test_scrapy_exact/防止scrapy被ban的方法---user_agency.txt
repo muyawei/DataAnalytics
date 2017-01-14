@@ -1,0 +1,174 @@
+要防止scrapy被ban，主要有以下几个策略。
+1.动态设置user agent
+2.禁用cookies
+3.设置延迟下载
+4.使用Google cache
+5.使用IP地址池（Tor project、VPN和代理IP）
+6.使用Crawlera
+
+1、创建middlewares.py
+
+　　scrapy代理IP、user agent的切换都是通过DOWNLOADER_MIDDLEWARES进行控制，下面我们创建middlewares.py文件。
+
+
+[root@bogon cnblogs]# vi cnblogs/middlewares.py
+
+import random
+import base64
+from settings import PROXIES
+
+class RandomUserAgent(object):
+    """Randomly rotate user agents based on a list of predefined ones"""
+
+    def __init__(self, agents):
+        self.agents = agents
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings.getlist('USER_AGENTS'))
+
+    def process_request(self, request, spider):
+        #print "**************************" + random.choice(self.agents)
+        request.headers.setdefault('User-Agent', random.choice(self.agents))
+
+class ProxyMiddleware(object):
+    def process_request(self, request, spider):
+        proxy = random.choice(PROXIES)
+        if proxy['user_pass'] is not None:
+            request.meta['proxy'] = "http://%s" % proxy['ip_port']
+            encoded_user_pass = base64.encodestring(proxy['user_pass'])
+            request.headers['Proxy-Authorization'] = 'Basic ' + encoded_user_pass
+            print "**************ProxyMiddleware have pass************" + proxy['ip_port']
+        else:
+            print "**************ProxyMiddleware no pass************" + proxy['ip_port']
+            request.meta['proxy'] = "http://%s" % proxy['ip_port']
+
+　　类RandomUserAgent主要用来动态获取user agent，user agent列表USER_AGENTS在settings.py中进行配置。
+    类ProxyMiddleware用来切换代理，proxy列表PROXIES也是在settings.py中进行配置。
+
+　　
+
+2、修改settings.py配置USER_AGENTS和PROXIES
+
+　　a)：添加USER_AGENTS
+
+复制代码
+USER_AGENTS = [
+    "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
+    "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Acoo Browser; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.0.04506)",
+    "Mozilla/4.0 (compatible; MSIE 7.0; AOL 9.5; AOLBuild 4337.35; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
+    "Mozilla/5.0 (Windows; U; MSIE 9.0; Windows NT 9.0; en-US)",
+    "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Win64; x64; Trident/5.0; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 2.0.50727; Media Center PC 6.0)",
+    "Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 1.0.3705; .NET CLR 1.1.4322)",
+    "Mozilla/4.0 (compatible; MSIE 7.0b; Windows NT 5.2; .NET CLR 1.1.4322; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 3.0.04506.30)",
+    "Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN) AppleWebKit/523.15 (KHTML, like Gecko, Safari/419.3) Arora/0.3 (Change: 287 c9dfb30)",
+    "Mozilla/5.0 (X11; U; Linux; en-US) AppleWebKit/527+ (KHTML, like Gecko, Safari/419.3) Arora/0.6",
+    "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.2pre) Gecko/20070215 K-Ninja/2.1.1",
+    "Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9) Gecko/20080705 Firefox/3.0 Kapiko/3.0",
+    "Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5",
+    "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.8) Gecko Fedora/1.9.0.8-1.fc10 Kazehakase/0.5.6",
+    "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_3) AppleWebKit/535.20 (KHTML, like Gecko) Chrome/19.0.1036.7 Safari/535.20",
+    "Opera/9.80 (Macintosh; Intel Mac OS X 10.6.8; U; fr) Presto/2.9.168 Version/11.52",
+]
+
+　　b)：添加代理IP设置PROXIES
+
+
+PROXIES = [
+    {'ip_port': '111.11.228.75:80', 'user_pass': ''},
+    {'ip_port': '120.198.243.22:80', 'user_pass': ''},
+    {'ip_port': '111.8.60.9:8123', 'user_pass': ''},
+    {'ip_port': '101.71.27.120:80', 'user_pass': ''},
+    {'ip_port': '122.96.59.104:80', 'user_pass': ''},
+    {'ip_port': '122.224.249.122:8088', 'user_pass': ''},
+]
+
+　　代理IP可以网上搜索一下，上面的代理IP获取自：http://www.xici.net.co/。
+
+　　c)：禁用cookies
+
+COOKIES_ENABLED=False
+d)：设置下载延迟
+
+DOWNLOAD_DELAY=3
+e)：最后设置DOWNLOADER_MIDDLEWARES 
+
+
+DOWNLOADER_MIDDLEWARES = {
+#    'cnblogs.middlewares.MyCustomDownloaderMiddleware': 543,
+    'cnblogs.middlewares.RandomUserAgent': 1,
+    'scrapy.contrib.downloadermiddleware.httpproxy.HttpProxyMiddleware': 110,
+    #'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
+    'cnblogs.middlewares.ProxyMiddleware': 100,
+}
+
+保存settings.py
+========================================================================
+相关知识：
+User Agent中文名为用户代理，简称 UA，它是一个特殊字符串头，
+使得服务器能够识别客户使用的操作系统及版本、CPU 类型、浏览器及版本、
+浏览器渲染引擎、浏览器语言、浏览器插件等。
+
+
+ http请求头信息
+Accept	        指定客户端能够接收的内容类型	Accept: text/plain, text/html
+Accept-Charset	浏览器可以接受的字符编码集。	Accept-Charset: iso-8859-5
+Accept-Encoding	指定浏览器可以支持的web服务器返回内容压缩编码类型。	Accept-Encoding: compress, gzip
+Accept-Language	浏览器可接受的语言	Accept-Language: en,zh
+Accept-Ranges	可以请求网页实体的一个或者多个子范围字段	Accept-Ranges: bytes
+Authorization	HTTP授权的授权证书
+Proxy-Authorization	连接到代理的授权证书	Proxy-Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+Referer	先前网页的地址，当前请求网页紧随其后,即来路	Referer: http://www.zcmhi.com/archives/71.html
+User-Agent	User-Agent的内容包含发出请求的用户信息	User-Agent: Mozilla/5.0 (Linux; X11)
+===================================referer======================
+HTTP Referer是header的一部分，当浏览器向web服务器发送请求的时候，一般会带上Referer，
+告诉服务器我是从哪个页面链接过来的，服务器籍此可以获得一些信息用于处理。
+比如从我主页上链接到一个朋友那里，
+他的服务器就能够从HTTP Referer中统计出每天有多少用户点击我主页上的链接访问他的网站。
+=================================设置代理================
+代理改变了什么？
+
+为了彻底弄清这个问题，我们先来看下设置浏览器代理之后，HTTP 请求头有那些变化。下面分别是设置代理前后访问同一 URL 的请求头（省略了无关内容）：
+
+GET / HTTP/1.1
+Host: www.example.com
+Connection: keep-alive
+ 
+GET http://www.example.com/ HTTP/1.1
+Host: www.example.com
+Proxy-Connection: keep-alive
+设置代理之后，浏览器连接的是代理服务器，不再是目标服务器，这个变化单纯从请求头中无法看出。
+请求头中的变化有两点：第一行中的 request-URL 变成了完整路径；
+                      Connection 请求头被替换成了 Proxy-Connection。
+我们分别来看这两个变化。
+为什么需要完整路径？
+
+1.早期的 HTTP 设计中，浏览器直接与单个服务器进行对话，不存在虚拟主机。
+单个服务器总是知道自己的主机名和对应端口，为了避免冗余，浏览器只需要发送主机名之外的那部分 URI 就行了。
+代理出现之后，部分 URI 彻底杯具，代理服务器无法得知用户想要访问的URI在什么主机上。
+为此，HTTP/1.0 要求浏览器为代理请求发送完整的 URI，也就是说规范告诉浏览器的实现者必须这么做。
+
+显式地给浏览器配置代理后，浏览器会为之后的请求使用完整 URI，解决了代理无法定位资源的问题。
+但是代理可以出现在连接的任何位置，很多代理对浏览器来说不可见，如反向代理或路由器代理。
+所以实际上，几乎所有的浏览器都会为每个请求加上内容为主机名的 HOST 请求头，来彻底解决虚拟主机问题。
+对于 HTTP/1.1 请求，HOST 请求头必须存在，否则会收到 400 错误；
+对于 HTTP/1.0 请求，如果连接的是代理服务器，使用相对 URI，并且没有 HOST 请求头，会发生错误。
+
+2.如果浏览器对这样的代理发送了 Connection: Keep-Alive，那么结果会变得很复杂。
+这个 Header 会被不理解它的代理原封不动的转给服务端，如果服务器也不能理解就还好，能理解就彻底杯具了。
+服务器并不知道 Keep-Alive 是由代理错误地转发而来，它会认为代理希望建立持久连接
+。这很常见，服务端同意了，也返回一个 Keep-Alive。
+同样，响应中的 Keep-Alive 也会被代理原样返给浏览器，同时代理还会傻等服务器关闭连接——实际上，
+服务端已经按照 Keep-Alive 指示保持了连接，即时数据回传完成，也不会关闭连接。
+另一方面，浏览器收到 Keep-Alive 之后，会复用之前的连接发送剩下的请求，
+但代理不认为这个连接上还会有其他请求，请求被忽略。这样，浏览器会一直处于挂起状态，直到连接超时。
+
+这个问题最根本的原因是代理服务器转发了禁止转发的 Header。
+但是要升级所有老旧的代理也不是件简单的事，所以浏览器厂商和代理实现者协商了一个变通的方案：
+首先，显式给浏览器设置代理后，浏览器会把请求头中的 Connection 替换为 Proxy-Connetion。
+这样，对于老旧的代理，它不认识这个 Header，会继续发给服务器，服务器也不认识，
+代理和服务器之间不会建立持久连接（不能正确处理 Connection 的都是 HTTP/1.0 代理），
+服务器不返回 Keep-Alive，代理和浏览器之间也不会建立持久连接。
+而对于新代理，它可以理解 Proxy-Connetion，会用 Connection 取代无意义的 Proxy-Connection，
+并将其发送给服务器，以收到预期的效果。

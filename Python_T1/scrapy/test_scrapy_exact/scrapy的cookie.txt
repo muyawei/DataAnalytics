@@ -1,0 +1,10 @@
+http://blog.csdn.net/qq_30175203/article/details/52105082
+
+首先模拟登陆，登陆过程中保存cookies在文件中
+
+在下次访问的时候使用cookie，若过期重新请求，并保存
+
+
+
+利用urllib2
+http://cuiqingcai.com/968.html
